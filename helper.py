@@ -22,54 +22,108 @@ class Swish(nn.Module):
         return x * torch.sigmoid(x)
 
 
-class ResidualBlock(nn.Module):
-    def __init__(self, in_channels, out_channels):
+class ResnetBlock(nn.Module):
+    def __init__(self, *, in_channels, out_channels=None, conv_shortcut=False,
+                 dropout, temb_channels=512):
+        super().__init__()
         self.in_channels = in_channels
+        out_channels = in_channels if out_channels is None else out_channels
         self.out_channels = out_channels
-        self.block = nn.Sequential(
-            GroupNorm(in_channels),
-            Swish(),
-            # NOTE: 根据卷积的计算公式, 当kernel_size = 3, stride = 1, padding = 1时, tensor的宽高不变
-            nn.Conv2d(in_channels, out_channels, 3, 1, 1),
-            GroupNorm(out_channels),
-            Swish(),
-            nn.Conv2d(out_channels, out_channels, 3, 1, 1)
-        )
+        self.use_conv_shortcut = conv_shortcut
 
-        if in_channels != out_channels:
-            self.channel_up = nn.Conv2d(in_channels, out_channels, 1, 1, 0)
-
-    def forward(self, x):
+        self.norm1 = GroupNorm(in_channels)
+        self.conv1 = torch.nn.Conv2d(in_channels,
+                                     out_channels,
+                                     kernel_size=3,
+                                     stride=1,
+                                     padding=1)
+        if temb_channels > 0:
+            self.temb_proj = torch.nn.Linear(temb_channels,
+                                             out_channels)
+        self.norm2 = Swish(out_channels)
+        self.dropout = torch.nn.Dropout(dropout)
+        self.conv2 = torch.nn.Conv2d(out_channels,
+                                     out_channels,
+                                     kernel_size=3,
+                                     stride=1,
+                                     padding=1)
         if self.in_channels != self.out_channels:
-            return self.channel_up(x) + self.block(x)
-        else:
-            return x + self.block(x)
+            if self.use_conv_shortcut:
+                self.conv_shortcut = torch.nn.Conv2d(in_channels,
+                                                     out_channels,
+                                                     kernel_size=3,
+                                                     stride=1,
+                                                     padding=1)
+            else:
+                self.nin_shortcut = torch.nn.Conv2d(in_channels,
+                                                    out_channels,
+                                                    kernel_size=1,
+                                                    stride=1,
+                                                    padding=0)
+
+    def forward(self, x, temb):
+        h = x
+        h = self.norm1(h)
+        h = Swish(h)
+        h = self.conv1(h)
+
+        if temb is not None:
+            h = h + self.temb_proj(Swish(temb))[:,:,None,None]
+
+        h = self.norm2(h)
+        h = Swish(h)
+        h = self.dropout(h)
+        h = self.conv2(h)
+
+        if self.in_channels != self.out_channels:
+            if self.use_conv_shortcut:
+                x = self.conv_shortcut(x)
+            else:
+                x = self.nin_shortcut(x)
+
+        return x+h
 
 
 class UpsampleBlock(nn.Module):
-    def __init__(self, channels):
+    def __init__(self, in_channels, with_conv):
         super(UpsampleBlock, self).__init__()
-        self.conv = nn.Conv2d(channels, channels, 3, 1, 1)
+        self.with_conv = with_conv
+        if self.with_conv:
+            self.conv = nn.Conv2d(in_channels, in_channels, 3, 1, 1)
 
     def forward(self, x):
-        x = F.interpolate(x, scale_factor = 2.0)
-        return self.conv(x)
+        x = F.interpolate(x, scale_factor = 2.0, mode = "bilinear")
+        if self.with_conv:
+            return self.conv(x)
+        else:
+            return x
 
 
-class DownSampleBlock(nn.Module):
-    def __init__(self, channels): 
-        super(DownSampleBlock, self).__init__()
-        self.conv = nn.Conv2d(channels, channels, 3, 2, 0)
+class DownsampleBlock(nn.Module):
+    def __init__(self, in_channels, with_conv):
+        super().__init__()
+        self.with_conv = with_conv
+        if self.with_conv:
+            # no asymmetric padding in torch conv, must do it ourselves
+            self.conv = torch.nn.Conv2d(in_channels,
+                                        in_channels,
+                                        kernel_size=3,
+                                        stride=2,
+                                        padding=0)
 
     def forward(self, x):
-        pad = (0, 1, 0, 1)
-        x = F.pad(x, pad, mode = "constant", value = 0)
-        return self.conv(x)
+        if self.with_conv:
+            pad = (0,1,0,1)
+            x = torch.nn.functional.pad(x, pad, mode="constant", value=0)
+            x = self.conv(x)
+        else:
+            x = torch.nn.functional.avg_pool2d(x, kernel_size=2, stride=2)
+        return x
 
 
-class NonLocalBlock(nn.Module):
+class AttnBlock(nn.Module):
     def __init__(self, channels):
-        super(NonLocalBlock, self).__init__()
+        super(AttnBlock, self).__init__()
         self.in_channels = channels
 
         self.norm = GroupNorm()
@@ -81,4 +135,22 @@ class NonLocalBlock(nn.Module):
         self.projection_out = nn.Conv2d(channels, channels, 1, 1, 0)
 
     def forward(self, x):
-        pass
+        h = x
+        h = self.norm(h)
+        q = self.q(h)
+        k = self.k(h)
+        v = self.v(h)
+
+        b, c, h, w = q.shape
+        q = q.reshape(b, c, h*w)
+        k = k.reshape(b, c, h*w)
+        v = v.reshape(b, c, h*w)
+
+        attention_scores = torch.bmm(q, k.transpose(1, 2))
+        attention_scores = attention_scores * (int(c) ** (-0.5))
+        attention_scores = F.softmax(attention_scores, dim = -1)
+
+        attention_scores = torch.bmm(attention_scores, v)
+        attention_out = self.projection_out(attention_scores)
+
+        return x + attention_out
