@@ -28,3 +28,4 @@ VQ-GAN是一种生成模型, 主要用于图像建模。它是一个两阶段的
 - [VQGAN+Transformer自回归建模图像生成的论文原理细致讲解
 ](https://www.bilibili.com/video/BV1mh411g7r5/?spm_id_from=333.788&vd_source=634f9cd56b5b0cf10f6976238630bd8d)
 - [VQGAN-pytorch](https://github.com/dome272/VQGAN-pytorch)
+- [VQGAN-pytorch](https://github.com/aa1234241/vqgan)
