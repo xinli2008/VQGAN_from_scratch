@@ -1,9 +1,7 @@
 """
 PatchGAN Discriminator (https://github.com/junyanz/pytorch-CycleGAN-and-pix2pix/blob/master/models/networks.py#L538)
 """
-
 import torch.nn as nn
-
 
 class Discriminator(nn.Module):
     def __init__(self, args, num_filters_last=64, n_layers=3):
