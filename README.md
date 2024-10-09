@@ -2,7 +2,7 @@
 
 ## Introduction
 
-Pytorch版本实现的VQ-GAN(仅供学习)
+Pytorch版本实现的VQ-GAN第一个阶段(仅供学习)
 
 ## Preliminary
 
