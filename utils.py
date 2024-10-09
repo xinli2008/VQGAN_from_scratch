@@ -44,14 +44,12 @@ def init_weight(m):
         nn.init.kaiming_uniform_(m.weight, nonlinearity='relu')  # He初始化适用于ReLU激活函数
         if m.bias is not None:
             nn.init.zeros_(m.bias)  # 将偏置初始化为0
-    
     # 如果是卷积层（Conv2d）
     elif isinstance(m, nn.Conv2d):
         # 使用正态分布初始化权重
         nn.init.kaiming_normal_(m.weight, nonlinearity='relu')
         if m.bias is not None:
             nn.init.zeros_(m.bias)  # 将偏置初始化为0
-
     # 如果是批量归一化层（BatchNorm2d）
     elif isinstance(m, nn.BatchNorm2d):
         nn.init.ones_(m.weight)  # 将权重初始化为1
