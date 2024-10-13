@@ -17,14 +17,13 @@ class GroupNorm(nn.Module):
         return self.norm(x)
 
 
-class Swish(nn.Module):
-    def forward(self, x):
-        return x * torch.sigmoid(x)
+def nonlinearity(x):
+    # swish
+    return x * torch.sigmoid(x)
 
 
 class ResnetBlock(nn.Module):
-    def __init__(self, *, in_channels, out_channels=None, conv_shortcut=False,
-                 dropout, temb_channels=512):
+    def __init__(self, *, in_channels, out_channels=None, conv_shortcut=False, dropout, temb_channels=512):
         super().__init__()
         self.in_channels = in_channels
         out_channels = in_channels if out_channels is None else out_channels
@@ -38,9 +37,8 @@ class ResnetBlock(nn.Module):
                                      stride=1,
                                      padding=1)
         if temb_channels > 0:
-            self.temb_proj = torch.nn.Linear(temb_channels,
-                                             out_channels)
-        self.norm2 = Swish(out_channels)
+            self.temb_proj = torch.nn.Linear(temb_channels, out_channels)
+        self.norm2 = GroupNorm(out_channels)
         self.dropout = torch.nn.Dropout(dropout)
         self.conv2 = torch.nn.Conv2d(out_channels,
                                      out_channels,
@@ -64,14 +62,14 @@ class ResnetBlock(nn.Module):
     def forward(self, x, temb):
         h = x
         h = self.norm1(h)
-        h = Swish(h)
+        h = nonlinearity(h)
         h = self.conv1(h)
 
         if temb is not None:
-            h = h + self.temb_proj(Swish(temb))[:,:,None,None]
+            h = h + self.temb_proj(nonlinearity(temb))[:,:,None,None]
 
         h = self.norm2(h)
-        h = Swish(h)
+        h = nonlinearity(h)
         h = self.dropout(h)
         h = self.conv2(h)
 
@@ -126,7 +124,7 @@ class AttnBlock(nn.Module):
         super(AttnBlock, self).__init__()
         self.in_channels = channels
 
-        self.norm = GroupNorm()
+        self.norm = GroupNorm(channels)
         
         # NOTE: 在自注意力机制中, W_q、W_k、W_v除了可以用nn.linear来实现, 也可以用1x1卷积来实现。 
         self.q = nn.Conv2d(channels, channels, 1, 1, 0)
@@ -151,6 +149,7 @@ class AttnBlock(nn.Module):
         attention_scores = F.softmax(attention_scores, dim = -1)
 
         attention_scores = torch.bmm(attention_scores, v)
-        attention_out = self.projection_out(attention_scores)
+        attention_out = attention_scores.reshape(b, c, h, w)
+        attention_out = self.projection_out(attention_out)
 
         return x + attention_out

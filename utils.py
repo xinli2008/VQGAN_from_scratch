@@ -18,8 +18,11 @@ class ImagePaths(Dataset):
         self.length = len(self.images)
 
         self.transform = transforms.Compose([
-            # NOTE: 这里默认使用的是双线性插值来进行缩放
-            transforms.Resize(self.size),
+            # NOTE: 对于transformer.Resize(), 有两个需要注意的地方:
+            # 1. 默认使用的是双线性插值
+            # 2. 如果传入的是一个值, 例如transforms.Resize(256),这意味着图像的较短边将被调整为该值,而较长边将按比例缩放,以保持图像的宽高比
+            #    当你传入两个整数(transforms.Resize((256, 512)),这意味着图像将被调整为指定的宽度和高度,不管原始图像的宽高比
+            transforms.Resize((self.size, self.size)),
             transforms.ToTensor(),
             transforms.Normalize(mean = [0.5, 0.5, 0.5], std = [0.5, 0.5, 0.5])
         ])
@@ -33,7 +36,7 @@ class ImagePaths(Dataset):
         return image
     
 def load_dataloader(args):
-    train_data = ImagePaths(args.dataset_path, size = 128)
+    train_data = ImagePaths(args.dataset_path, size = args.image_size)
     train_dataloader = DataLoader(train_data, batch_size = args.batch_size, shuffle = True, drop_last = True)
     return train_dataloader
 

@@ -8,6 +8,7 @@ class Encoder(nn.Module):
     def __init__(self, *, in_channels, out_channels, ch_mult = (1, 2, 4, 8), num_res_block,
                  attn_resolutions, dropout = 0.0, resample_with_conv = True, 
                  resolution, z_channels, double_z = True, **ignore_kwargs):
+        # NOTE: 初始化中*的作用:
         super(Encoder, self).__init__()
         self.channels = out_channels
         self.temb_ch = 0
@@ -28,7 +29,7 @@ class Encoder(nn.Module):
             block = nn.ModuleList()
             attn = nn.ModuleList()
             block_in = out_channels * in_ch_mult[i_level]
-            block_out = out_channels * in_ch_mult[i_level]
+            block_out = out_channels * ch_mult[i_level]
             
             for i_block in range(self.num_res_block):
                 block.append(ResnetBlock(in_channels=block_in, 
@@ -86,11 +87,11 @@ class Encoder(nn.Module):
         h = hs[-1]
         h = self.midblock.block_1(h, temb)
         h = self.midblock.attn_1(h)
-        h = self.midblock.block2(h, temb)
+        h = self.midblock.block_2(h, temb)
 
         # end
         h = self.norm_out(h)
-        h = GroupNorm(h)
+        h = nonlinearity(h)
         h = self.conv_out(h)
 
         return h

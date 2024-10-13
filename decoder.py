@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from encoder import GroupNorm, Swish, ResnetBlock, AttnBlock, DownsampleBlock, UpsampleBlock
+from encoder import GroupNorm, nonlinearity, ResnetBlock, AttnBlock, DownsampleBlock, UpsampleBlock
 
 class Decoder(nn.Module):
     def __init__(self, *, ch, out_ch, ch_mult = (1,2,4,8), num_res_block,
@@ -17,10 +17,10 @@ class Decoder(nn.Module):
         self.give_pre_end = give_pre_end
 
         block_in = ch*ch_mult[self.num_resolutions - 1]
-        curr_res = resolution // 2**(self.resolution - 1)
+        curr_res = resolution // 2**(self.num_resolutions - 1)
         self.z_shape = (1, z_channels, curr_res, curr_res)
 
-        print(f"working iwth z of shape {self.z_shape} = {np.prod(self.z_shape)} dimensions.")
+        print(f"working with z of shape {self.z_shape} = {np.prod(self.z_shape)} dimensions.")
 
         # conv_in
         self.conv_in = nn.Conv2d(z_channels, block_in, 3, 1, 1)
@@ -95,6 +95,6 @@ class Decoder(nn.Module):
             return h
 
         h = self.norm_out(h)
-        h = Swish(h)
+        h = nonlinearity(h)
         h = self.conv_out(h)
         return h

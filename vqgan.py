@@ -5,10 +5,13 @@ from decoder import Decoder
 from codebook import Codebook
 
 class VQGAN(nn.Module):
-    def __init__(self,args):
+    def __init__(self, args):
         super(VQGAN, self).__init__()
-        self.encoder = Encoder(args).to(device = args.device)
-        self.decoder = Decoder(args).to(device = args.device)
+        self.encoder = Encoder(in_channels=3, out_channels=128, ch_mult=[1, 1, 2, 2, 4], num_res_block=2,
+                               attn_resolutions=[16], dropout=0.0, resample_with_conv=True,
+                               resolution=256, z_channels=256, double_z=False).to(device = args.device)
+        self.decoder = Decoder(z_channels=256, resolution=256, in_channels=3, out_ch=3, ch = 128,
+                               ch_mult=[1, 1, 2, 2, 4], num_res_block=2, attn_resolutions=[16], dropout=0.0).to(device = args.device)
         self.codebook = Codebook(args).to(device = args.device)
         self.quant_conv = nn.Conv2d(args.latent_dim, args.latent_dim, 1, 1, 0).to(device = args.device)
         self.post_quant_conv = nn.Conv2d(args.latent_dim, args.latent_dim, 1, 1, 0).to(device = args.device)
@@ -44,10 +47,7 @@ class VQGAN(nn.Module):
         以确保感知损失和gan损失对训练的贡献在一定范围内保持合理的比例。
         """
 
-        # 获取解码器的最后一层, 这通常是最接近输出层的卷积层或其他权重层
-        last_layer = self.decoder.model[-1]
-
-        # 获取解码器最后一层的权重, 将用于计算感知loss和GAN-loss对该层的梯度
+        last_layer = self.decoder.conv_out
         last_layer_weight = last_layer.weight
 
         # 计算感知损失(perpetual loss)对解码器最后一层权重的梯度
@@ -71,3 +71,9 @@ class VQGAN(nn.Module):
         # NOTE: 在加载模型权重的时候, strict = True时, load_state_dict会严格检查模型的结构与加载的权重文件是否完全匹配。
         # 如果模型的state_dict存在任何一个参数不匹配的话, pytorch会抛出一个错误, 提示一个不匹配的key-value。
         self.load_state_dict(self.load(path))
+    
+    @staticmethod
+    def adopt_weight(disc_factor, i, threshold, value=0.):
+        if i < threshold:
+            disc_factor = value
+        return disc_factor

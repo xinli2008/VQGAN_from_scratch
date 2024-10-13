@@ -3,12 +3,13 @@ import torch.nn as nn
 
 class Codebook(nn.Module):
     def __init__(self, args):
+        super(Codebook, self).__init__()
         self.num_codebook_vectors = args.num_codebook_vectors
         self.latent_dim = args.latent_dim
         self.beta = args.beta
 
         self.embedding = nn.Embedding(self.num_codebook_vectors, self.latent_dim)
-        self.embedding.weight.data.uniform(-1.0 / self.num_codebook_vectors, 1.0 / self.num_codebook_vectors)
+        self.embedding.weight.data.uniform_(-1.0 / self.num_codebook_vectors, 1.0 / self.num_codebook_vectors)
 
     def forward(self, z):
         """
@@ -34,11 +35,11 @@ class Codebook(nn.Module):
         distance = torch.sum((embedding_broadcast - z_broadcast) **2, dim = 2)
         min_encoding_indices = torch.argmin(distance, dim = 1)
 
-        # NOTE: 找到了索引index后, 然后根据index去codebook取元素
+        # NOTE: 找到了索引index后, 然后根据index去codebook中取元素
         z_q = self.embedding(min_encoding_indices).view(z.shape)  # [b, h, w, c]
 
         # 计算关于codebook的loss
-        loss = torch.mean((z_q.detach() - z) ** 2) + self.beta((zq - z.detach()) ** 2)
+        loss = torch.mean((z_q.detach() - z) ** 2) + self.beta* torch.mean((z_q - z.detach()) ** 2)
 
         # NOTE: 我们在回顾一下VQGAN的第一个阶段forward的过程:
         # encoder -> codebook -> decoder
