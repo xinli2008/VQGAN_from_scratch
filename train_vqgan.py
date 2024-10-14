@@ -81,8 +81,9 @@ class TrainVqgan:
                     pbar.update(0)
                 
                 # save checkpoints
-                torch.save(self.vqgan.state_dict(), os.path.join("./checkpoints", f"vqgan_epoch_{epoch}.pt"))
-                torch.save(self.discriminator.state_dict(), os.path.join("./checkpoints", f"discriminator_epoch_{epoch}.pt"))
+                if epoch % 20 == 0:
+                    torch.save(self.vqgan.state_dict(), os.path.join("./checkpoints", f"vqgan_epoch_{epoch}.pt"))
+                    torch.save(self.discriminator.state_dict(), os.path.join("./checkpoints", f"discriminator_epoch_{epoch}.pt"))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description = "VQGAN Training Parameters")
