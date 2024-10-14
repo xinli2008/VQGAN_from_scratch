@@ -167,3 +167,4 @@ text_det
 .vscode
 checkpoints/*
 pretrained_models/*
+demo.py
