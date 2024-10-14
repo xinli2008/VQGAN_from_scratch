@@ -16,7 +16,7 @@ from torch import autocast
 class TrainVqgan:
     def __init__(self, args):
         self.vqgan = VQGAN(args).to(device = args.device)
-        self.vqgan.apply(init_weight)
+        self.vqgan.load_state_dict(torch.load(os.path.join("/mnt/VQGAN_from_scratch/pretrained_models", "vqgan_epoch_308_flower.pt")))
         self.discriminator = Discriminator(args).to(device = args.device)
         self.discriminator.apply(init_weight)
         self.perceptual_loss = LPIPS().eval().to(device=args.device)
@@ -34,7 +34,7 @@ class TrainVqgan:
         steps_per_epoch = len(dataset)
         scaler = torch.cuda.amp.GradScaler()
         
-        for epoch in range(args.num_epochs):
+        for epoch in range(309, args.num_epochs):
             with tqdm(range(len(dataset))) as pbar:
                 for i, imgs in zip(pbar, dataset):
                     
@@ -84,7 +84,7 @@ class TrainVqgan:
                     pbar.update(0)
                 
                 # save checkpoints
-                if epoch % 20 == 0:
+                if epoch % 10 == 0:
                     torch.save(self.vqgan.state_dict(), os.path.join("./checkpoints", f"vqgan_epoch_{epoch}.pt"))
                     torch.save(self.discriminator.state_dict(), os.path.join("./checkpoints", f"discriminator_epoch_{epoch}.pt"))
 

@@ -51,19 +51,19 @@ class Encoder(nn.Module):
             self.down.append(down)
         
         # midblock
-        self.midblock = nn.Module()
-        self.midblock.block_1 = ResnetBlock(in_channels=block_in,
+        self.mid = nn.Module()
+        self.mid.block_1 = ResnetBlock(in_channels=block_in,
                                             out_channels=block_in,
                                             temb_channels=self.temb_ch,
                                             dropout=dropout)
-        self.midblock.attn_1 = AttnBlock(block_in)
-        self.midblock.block_2 = ResnetBlock(in_channels=block_in,
+        self.mid.attn_1 = AttnBlock(block_in)
+        self.mid.block_2 = ResnetBlock(in_channels=block_in,
                                             out_channels=block_in,
                                             temb_channels=self.temb_ch,
                                             dropout=dropout)
         
         # end 
-        self.norm_out = GroupNorm(block_in)
+        self.norm_out = Normalize(block_in)
         self.conv_out = nn.Conv2d(block_in,
                                   2 * z_channels if double_z else z_channels,
                                   3, 1, 1 )
@@ -85,9 +85,9 @@ class Encoder(nn.Module):
         
         # middle
         h = hs[-1]
-        h = self.midblock.block_1(h, temb)
-        h = self.midblock.attn_1(h)
-        h = self.midblock.block_2(h, temb)
+        h = self.mid.block_1(h, temb)
+        h = self.mid.attn_1(h)
+        h = self.mid.block_2(h, temb)
 
         # end
         h = self.norm_out(h)

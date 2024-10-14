@@ -3,18 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
-class GroupNorm(nn.Module):
-    def __init__(self, channels):
-        super(GroupNorm, self).__init__()
-        self.norm = nn.GroupNorm(
-            num_groups = 32,
-            num_channels=channels,
-            eps=1e-6,
-            affine=True
-        )
-
-    def forward(self, x):
-        return self.norm(x)
+def Normalize(in_channels):
+    return torch.nn.GroupNorm(num_groups=32, num_channels=in_channels, eps=1e-6, affine=True)
 
 
 def nonlinearity(x):
@@ -30,7 +20,7 @@ class ResnetBlock(nn.Module):
         self.out_channels = out_channels
         self.use_conv_shortcut = conv_shortcut
 
-        self.norm1 = GroupNorm(in_channels)
+        self.norm1 = Normalize(in_channels)
         self.conv1 = torch.nn.Conv2d(in_channels,
                                      out_channels,
                                      kernel_size=3,
@@ -38,7 +28,7 @@ class ResnetBlock(nn.Module):
                                      padding=1)
         if temb_channels > 0:
             self.temb_proj = torch.nn.Linear(temb_channels, out_channels)
-        self.norm2 = GroupNorm(out_channels)
+        self.norm2 = Normalize(out_channels)
         self.dropout = torch.nn.Dropout(dropout)
         self.conv2 = torch.nn.Conv2d(out_channels,
                                      out_channels,
@@ -124,13 +114,13 @@ class AttnBlock(nn.Module):
         super(AttnBlock, self).__init__()
         self.in_channels = channels
 
-        self.norm = GroupNorm(channels)
+        self.norm = Normalize(channels)
         
         # NOTE: 在自注意力机制中, W_q、W_k、W_v除了可以用nn.linear来实现, 也可以用1x1卷积来实现。 
         self.q = nn.Conv2d(channels, channels, 1, 1, 0)
         self.k = nn.Conv2d(channels, channels, 1, 1, 0)
         self.v = nn.Conv2d(channels, channels, 1, 1, 0)
-        self.projection_out = nn.Conv2d(channels, channels, 1, 1, 0)
+        self.proj_out = nn.Conv2d(channels, channels, 1, 1, 0)
 
     def forward(self, x):
         h = x
@@ -150,6 +140,6 @@ class AttnBlock(nn.Module):
 
         attention_scores = torch.bmm(attention_scores, v)
         attention_out = attention_scores.reshape(b, c, h, w)
-        attention_out = self.projection_out(attention_out)
+        attention_out = self.proj_out(attention_out)
 
         return x + attention_out

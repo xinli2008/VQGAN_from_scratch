@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import numpy as np
-from encoder import GroupNorm, nonlinearity, ResnetBlock, AttnBlock, DownsampleBlock, UpsampleBlock
+from encoder import Normalize, nonlinearity, ResnetBlock, AttnBlock, DownsampleBlock, UpsampleBlock
 
 class Decoder(nn.Module):
     def __init__(self, *, ch, out_ch, ch_mult = (1,2,4,8), num_res_block,
@@ -60,7 +60,7 @@ class Decoder(nn.Module):
             self.up.insert(0, up)
         
         # end
-        self.norm_out = GroupNorm(block_in)
+        self.norm_out = Normalize(block_in)
         self.conv_out = torch.nn.Conv2d(block_in,
                                         out_ch,
                                         kernel_size=3,
