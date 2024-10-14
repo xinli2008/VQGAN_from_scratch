@@ -9,14 +9,16 @@ from discriminator import Discriminator
 from vqgan import VQGAN
 from torch import autocast
 from lpips import LPIPS
-from utils import load_dataloader
+from utils import load_dataloader, init_weight
 from torch import autocast
 
 
 class TrainVqgan:
     def __init__(self, args):
         self.vqgan = VQGAN(args).to(device = args.device)
+        self.vqgan.apply(init_weight)
         self.discriminator = Discriminator(args).to(device = args.device)
+        self.discriminator.apply(init_weight)
         self.perceptual_loss = LPIPS().eval().to(device=args.device)
         self.optimizer_vqgan, self.optimizer_discriminator = self.set_optimizer(args)
         self.train(args)
@@ -30,13 +32,14 @@ class TrainVqgan:
     def train(self, args):
         dataset = load_dataloader(args)
         steps_per_epoch = len(dataset)
-        scaler = torch.amp.GradScaler()
+        scaler = torch.cuda.amp.GradScaler()
         
         for epoch in range(args.num_epochs):
             with tqdm(range(len(dataset))) as pbar:
                 for i, imgs in zip(pbar, dataset):
                     
                     ### NOTE: train discriminator
+                    self.discriminator.zero_grad()
                     self.optimizer_discriminator.zero_grad()
                     with autocast(device_type="cuda", dtype = torch.float16):
                         imgs = imgs.to(device = args.device)
@@ -51,7 +54,7 @@ class TrainVqgan:
                         d_loss_real = torch.mean(F.relu(1. - disc_real))
                         d_loss_fake = torch.mean(F.relu(1. + disc_fake))
                         disc_factor = self.vqgan.adopt_weight(args.disc_factor, epoch * steps_per_epoch + i,
-                                                              threshold=args.disc_start)
+                                                              threshold = args.disc_start)
                         gan_loss = disc_factor * 0.5 * (d_loss_real + d_loss_fake)
                     scaler.scale(gan_loss).backward()
                     scaler.step(self.optimizer_discriminator)
@@ -74,8 +77,8 @@ class TrainVqgan:
                     scaler.update()
                     
                     pbar.set_postfix(
-                        VQ_Loss=np.round(vq_loss.cpu().detach().numpy().item(), 5),
-                        GAN_Loss=np.round(gan_loss.cpu().detach().numpy().item(), 3),
+                        Discriminator_Loss=np.round(gan_loss.cpu().detach().numpy().item(), 5),
+                        VQ_Loss=np.round(vq_loss.cpu().detach().numpy().item(), 3),
                         lbd=lbd.data.cpu().numpy()
                     )
                     pbar.update(0)

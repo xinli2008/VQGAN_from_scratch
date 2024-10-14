@@ -20,7 +20,6 @@ VQ-GAN是一种生成模型, 主要用于图像建模。它是一个两阶段的
 
 在第二个阶段中, VQ-GAN使用Transformer对离散token序列进行建模, 学习生成新的token序列, 最终通过解码器生成新图像。
 
-## Results for First Stage (Reconstruction):
 
 ## Acknowledgements
 
