@@ -9,16 +9,17 @@ from discriminator import Discriminator
 from vqgan import VQGAN
 from torch import autocast
 from lpips import LPIPS
-from utils import load_dataloader, init_weight
+from utils import load_dataloader, weights_init
 from torch import autocast
-
+from torchvision import utils as vutils
 
 class TrainVqgan:
     def __init__(self, args):
         self.vqgan = VQGAN(args).to(device = args.device)
-        self.vqgan.load_state_dict(torch.load(os.path.join("/mnt/VQGAN_from_scratch/pretrained_models", "vqgan_epoch_308_flower.pt")))
+        self.vqgan.load_state_dict(torch.load("/mnt/VQGAN_from_scratch/pretrained_models/vqgan_epoch_308_flower.pt", map_location=args.device, weights_only=True), strict=True)
         self.discriminator = Discriminator(args).to(device = args.device)
-        self.discriminator.apply(init_weight)
+        # self.discriminator.apply(weights_init)
+        self.discriminator.load_state_dict(torch.load("/mnt/VQGAN_from_scratch/pretrained_models/discriminator_epoch_308_flower.pt", map_location=args.device, weights_only=True), strict=True)
         self.perceptual_loss = LPIPS().eval().to(device=args.device)
         self.optimizer_vqgan, self.optimizer_discriminator = self.set_optimizer(args)
         self.train(args)
@@ -34,7 +35,7 @@ class TrainVqgan:
         steps_per_epoch = len(dataset)
         scaler = torch.cuda.amp.GradScaler()
         
-        for epoch in range(309, args.num_epochs):
+        for epoch in range(args.num_epochs):
             with tqdm(range(len(dataset))) as pbar:
                 for i, imgs in zip(pbar, dataset):
                     
@@ -75,6 +76,13 @@ class TrainVqgan:
                     scaler.scale(vq_loss).backward()
                     scaler.step(self.optimizer_vqgan)
                     scaler.update()
+                    
+                    if i % 500 == 0:
+                        with torch.no_grad():
+                            real_fake_images = torch.cat((imgs.add(1).mul(0.5)[:4],
+                                                          torch.clamp(decoded_images.add(1).mul(0.5), min=0.0, max=1)[
+                                                          :4]))
+                            vutils.save_image(real_fake_images, os.path.join("results", f"epoch{epoch}_step{i}.jpg"), nrow=4)
                     
                     pbar.set_postfix(
                         Discriminator_Loss=np.round(gan_loss.cpu().detach().numpy().item(), 5),

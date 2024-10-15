@@ -22,6 +22,7 @@ class VQGAN(nn.Module):
         """
         encoded_images = self.encoder(imgs)
         quant_conv_encoded_images = self.quant_conv(encoded_images)
+        quant_conv_encoded_images = torch.nn.functional.normalize(quant_conv_encoded_images, dim = 1)
         codebook_mapping, codebook_indices, codebook_loss = self.codebook(quant_conv_encoded_images)
         post_quant_conv_encoded_images = self.post_quant_conv(codebook_mapping)
         decoded_images = self.decoder(post_quant_conv_encoded_images)
