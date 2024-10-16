@@ -112,7 +112,7 @@ if __name__ == "__main__":
     parser.add_argument("--device", type = str, default = "cuda", help = "which device to train the data, cuda or cpu")
     parser.add_argument("--batch_size", type = int, default = 16, help = "batch size for training model")
     parser.add_argument("--num_epochs", type = int, default = 1000, help = "number of epoches to train")
-    parser.add_argument("--learning_rate", type = float, default = 2.25e-5, help = "learning rate")
+    parser.add_argument("--learning_rate", type = float, default = 2.25e-05, help = "learning rate")
     parser.add_argument("--beta1", type = float, default = 0.5, help = "adam beta parmeters")
     parser.add_argument("--beta2", type = float, default = 0.9, help = "adam beta parmeters")
     parser.add_argument('--disc-start', type=int, default=10000, help='When to start the discriminator (default: 0)')

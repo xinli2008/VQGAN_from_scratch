@@ -25,3 +25,15 @@ VQ-GAN是一种生成模型, 主要用于图像建模。它是一个两阶段的
 - [VQGAN-pytorch-fixed-version](https://github.com/aa1234241/vqgan)
 - [vector-quantize-pytorch](https://github.com/lucidrains/vector-quantize-pytorch)
 - [Training an VQGAN VAE in diffusers](https://github.com/huggingface/diffusers/blob/3159e60d59819ae874ea3cdbd28e02d9e6c57321/examples/vqgan/README.md)
+
+## Citation
+```bibtex
+@misc{esser2021taming,
+      title={Taming Transformers for High-Resolution Image Synthesis}, 
+      author={Patrick Esser and Robin Rombach and Björn Ommer},
+      year={2021},
+      eprint={2012.09841},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+}
+```
