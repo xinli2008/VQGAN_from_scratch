@@ -18,9 +18,9 @@ VQ-GAN是一种生成模型, 主要用于图像建模。它是一个两阶段的
 
 ## Results for First Stage (Reconstruction)
 
-<img src="./results/epoch300_step0.jpg" width="500">
+<img src="./assets/epoch300_step0.jpg" width="500">
 
-<img src="./results/epoch300_step500.jpg" width = "500">
+<img src="./assets/epoch300_step500.jpg" width = "500">
 
 ## Train VQGAN on your own data:
 ### Training First Stage
