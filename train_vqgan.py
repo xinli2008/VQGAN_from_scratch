@@ -116,7 +116,7 @@ if __name__ == "__main__":
     parser.add_argument("--beta1", type = float, default = 0.5, help = "adam beta parmeters")
     parser.add_argument("--beta2", type = float, default = 0.9, help = "adam beta parmeters")
     parser.add_argument('--disc-start', type=int, default=10000, help='When to start the discriminator (default: 0)')
-    parser.add_argument('--disc-factor', type=float, default=0.2, help='')
+    parser.add_argument('--disc-factor', type=float, default=0.2, help='discriminator factor')
     parser.add_argument('--rec_loss_factor', type=float, default=1.0, help='Weighting factor for reconstruction loss.')
     parser.add_argument('--perceptual_loss_factor', type=float, default=1.0,
                         help='Weighting factor for perceptual loss.')
