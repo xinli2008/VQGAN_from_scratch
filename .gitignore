@@ -167,5 +167,5 @@ text_det
 checkpoints/*
 pretrained_models/*
 demo.py
-*.jpg
 visualize.py
+results/*
